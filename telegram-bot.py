@@ -1,11 +1,14 @@
 import os
 import requests
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise ValueError("توکن BOT_TOKEN قرار نگرفته!")
+    raise ValueError("توکن BOT_TOKEN در Environment Variable قرار نگرفته!")
+
+app = Flask(__name__)
 
 COINS = {
     "btc": "bitcoin",
@@ -37,7 +40,6 @@ def get_price(symbols):
             result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
     return "\n".join(result)
 
-# فرمان‌ها
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "سلام 👋\nمن ربات قیمت کریپتو هستم.\n"
@@ -50,20 +52,20 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text(get_price(context.args))
 
-# ساخت Application
 application = ApplicationBuilder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("price", price))
 
-# اجرای Webhook با متد مخصوص نسخه 20+
-if __name__ == "__main__":
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # مثل https://your-render-app.onrender.com/TOKEN
-    if not WEBHOOK_URL:
-        raise ValueError("Environment variable WEBHOOK_URL را تنظیم کنید!")
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.process_update(update)  # ← این خط باعث اجرای فرمان‌ها می‌شود
+    return "ok"
 
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000)),
-        url_path=TOKEN,
-        webhook_url=WEBHOOK_URL
-    )
+@app.route("/")
+def home():
+    return "Bot is running ✅"
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
