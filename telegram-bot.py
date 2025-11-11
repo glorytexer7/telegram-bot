@@ -23,18 +23,25 @@ def get_price(symbols):
         if sym in COINS:
             coin_id = COINS[sym]
             try:
-    r = requests.get(
-        "https://api.coingecko.com/api/v3/simple/price",
-        params={"ids": coin_id, "vs_currencies": "usd"}
-    )
-    print(r.status_code, r.text)  # ← اضافه کن
-    price = r.json().get(coin_id, {}).get("usd")
-                if price:
+                r = requests.get(
+                    "https://api.coingecko.com/api/v3/simple/price",
+                    params={"ids": coin_id, "vs_currencies": "usd"},
+                    timeout=10
+                )
+                if r.status_code != 200:
+                    result.append(f"❌ {sym.upper()}: خطا در دریافت دیتا (HTTP {r.status_code})")
+                    continue
+
+                data = r.json()
+                price = data.get(coin_id, {}).get("usd")
+                if price is not None:
                     result.append(f"💰 {sym.upper()}: ${price:,}")
                 else:
-                    result.append(f"❌ {sym.upper()}: داده موجود نیست")
-            except:
-                result.append(f"❌ {sym.upper()}: خطا در دریافت دیتا")
+                    result.append(f"❌ {sym.upper()}: داده موجود نیست (API Structure)")
+            except requests.exceptions.Timeout:
+                result.append(f"❌ {sym.upper()}: زمان پاسخ API تمام شد")
+            except requests.exceptions.RequestException as e:
+                result.append(f"❌ {sym.upper()}: خطای شبکه: {e}")
         else:
             result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
     return "\n".join(result)
@@ -61,8 +68,7 @@ application.add_handler(CommandHandler("price", price))
 if __name__ == "__main__":
     application.run_webhook(
         listen="0.0.0.0",
-        port=5000,  # Render متغیر PORT خودش می‌سازه، اگر لازم بود os.environ.get("PORT") بذار
+        port=5000,  # Render متغیر PORT خودش می‌سازه، در صورت نیاز میشه os.environ.get("PORT") بذار
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
-
