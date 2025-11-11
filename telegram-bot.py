@@ -2,7 +2,7 @@ import time
 import requests
 import xml.etree.ElementTree as ET
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # ======= تنظیمات ربات =======
 TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
@@ -31,7 +31,7 @@ SYMBOLS = {
 _price_cache = {}
 _news_cache = {}
 CACHE_TTL_PRICE = 30  # ثانیه
-CACHE_TTL_NEWS = 600  # ثانیه (10 دقیقه)
+CACHE_TTL_NEWS = 600  # 10 دقیقه
 
 # ======= توابع کمکی =======
 def get_price(symbols):
@@ -53,20 +53,15 @@ def get_price(symbols):
                 r.raise_for_status()
                 data = r.json()["RAW"][SYMBOLS[key]]["USD"]
                 price = data["PRICE"]
-                _price_cache[key] = {"price": price, "time": now, "change": data.get("CHANGEPCT24HOUR", 0)}
+                _price_cache[key] = {"price": price, "time": now}
             except Exception as e:
                 result.append(f"❌ {key.upper()}: Error fetching data ({e})")
                 continue
 
         result.append(f"💰 {key.upper()}: ${price:,.2f}")
-
     return "\n".join(result)
 
 def convert_crypto(amount, from_sym, to_sym):
-    from_sym = from_sym.lower()
-    to_sym = to_sym.lower()
-    if from_sym not in SYMBOLS or to_sym not in SYMBOLS:
-        return "❌ Invalid currency symbol."
     prices = get_price([from_sym, to_sym]).split("\n")
     try:
         from_price = float(prices[0].split("$")[1].replace(",", ""))
@@ -109,7 +104,6 @@ def analyze_market(symbols):
 
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL_PRICE:
             price = _price_cache[key]["price"]
-            change = _price_cache[key].get("change", 0)
         else:
             url = "https://min-api.cryptocompare.com/data/pricemultifull"
             params = {"fsyms": SYMBOLS[key], "tsyms": "USD"}
@@ -124,9 +118,8 @@ def analyze_market(symbols):
                 result.append(f"❌ {key.upper()}: Error fetching data")
                 continue
 
-        sentiment = "Bullish 📈" if change >= 0 else "Bearish 📉"
-        result.append(f"💡 {key.upper()} Market Analysis:\nPrice: ${price:,.2f}\n24h Change: {change:.2f}%\nSentiment: {sentiment}")
-
+        sentiment = "Bullish 📈" if _price_cache[key].get("change", 0) >= 0 else "Bearish 📉"
+        result.append(f"💡 {key.upper()} Market Analysis:\nPrice: ${price:,.2f}\nSentiment: {sentiment}")
     return "\n\n".join(result)
 
 # ======= فرمان‌ها =======
