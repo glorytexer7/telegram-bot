@@ -214,7 +214,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     news_items.append(f"- {title} ({link})")
             except:
                 continue
-        msg = "📰 *Top Crypto News:*/n" + "\n".join(news_items[:6])
+        msg = "📰 *Top Crypto News:*\n\n" + "\n".join(news_items[:6])
         await query.message.reply_text(msg, parse_mode="Markdown")
 
     elif data == "analysis":
@@ -262,3 +262,4 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
