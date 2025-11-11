@@ -1,3 +1,4 @@
+import time
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -15,35 +16,59 @@ COINS = {
     "doge": "dogecoin"
 }
 
-# ======= تابع دریافت قیمت =======
+# ======= کش داخلی برای جلوگیری از Rate Limit =======
+_price_cache = {"data": {}, "time": 0}
+CACHE_TTL = 30  # ثانیه، زمان نگهداری قیمت‌ها در کش
+
+# ======= تابع دریافت قیمت با کش =======
 def get_price(symbols):
+    now = time.time()
+    # استفاده از کش اگر هنوز معتبره
+    if now - _price_cache["time"] < CACHE_TTL and _price_cache["data"]:
+        data = _price_cache["data"]
+    else:
+        # درخواست یکباره برای تمام ارزها
+        all_ids = ",".join(set(COINS.values()))
+        try:
+            r = requests.get(
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={"ids": all_ids, "vs_currencies": "usd"},
+                timeout=10
+            )
+        except requests.exceptions.RequestException as e:
+            if _price_cache["data"]:
+                data = _price_cache["data"]
+            else:
+                return "\n".join([f"❌ {sym.upper()}: خطای شبکه: {e}" for sym in symbols])
+        else:
+            if r.status_code == 200:
+                data = r.json()
+                _price_cache["data"] = data
+                _price_cache["time"] = now
+            elif r.status_code == 429:
+                if _price_cache["data"]:
+                    data = _price_cache["data"]
+                else:
+                    return "\n".join([f"❌ {sym.upper()}: CoinGecko Rate Limit (HTTP 429). لطفاً بعدا تلاش کن." for sym in symbols])
+            else:
+                if _price_cache["data"]:
+                    data = _price_cache["data"]
+                else:
+                    return "\n".join([f"❌ {sym.upper()}: خطا در دریافت دیتا (HTTP {r.status_code})" for sym in symbols])
+
+    # ساخت پیام برای ارزهای درخواست‌شده
     result = []
     for sym in symbols:
-        sym = sym.lower()
-        if sym in COINS:
-            coin_id = COINS[sym]
-            try:
-                r = requests.get(
-                    "https://api.coingecko.com/api/v3/simple/price",
-                    params={"ids": coin_id, "vs_currencies": "usd"},
-                    timeout=10
-                )
-                if r.status_code != 200:
-                    result.append(f"❌ {sym.upper()}: خطا در دریافت دیتا (HTTP {r.status_code})")
-                    continue
-
-                data = r.json()
-                price = data.get(coin_id, {}).get("usd")
-                if price is not None:
-                    result.append(f"💰 {sym.upper()}: ${price:,}")
-                else:
-                    result.append(f"❌ {sym.upper()}: داده موجود نیست (API Structure)")
-            except requests.exceptions.Timeout:
-                result.append(f"❌ {sym.upper()}: زمان پاسخ API تمام شد")
-            except requests.exceptions.RequestException as e:
-                result.append(f"❌ {sym.upper()}: خطای شبکه: {e}")
-        else:
+        key = sym.lower()
+        if key not in COINS:
             result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
+            continue
+        coin_id = COINS[key]
+        price = data.get(coin_id, {}).get("usd")
+        if price is not None:
+            result.append(f"💰 {key.upper()}: ${price:,}")
+        else:
+            result.append(f"❌ {key.upper()}: داده موجود نیست")
     return "\n".join(result)
 
 # ======= فرمان‌ها =======
@@ -68,7 +93,7 @@ application.add_handler(CommandHandler("price", price))
 if __name__ == "__main__":
     application.run_webhook(
         listen="0.0.0.0",
-        port=5000,  # Render متغیر PORT خودش می‌سازه، در صورت نیاز میشه os.environ.get("PORT") بذار
+        port=5000,  # Render خودش PORT درست می‌کنه؛ می‌تونی os.environ.get("PORT") هم بذاری
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
