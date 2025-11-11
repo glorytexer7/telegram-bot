@@ -1,15 +1,12 @@
-import os
 import requests
-from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-TOKEN = os.getenv("BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("توکن BOT_TOKEN در Environment Variable قرار نگرفته!")
+# ======= تنظیمات ربات =======
+TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
+WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"  # URL سرویس Render + توکن
 
-app = Flask(__name__)
-
+# ======= دیتای ارزها =======
 COINS = {
     "btc": "bitcoin",
     "eth": "ethereum",
@@ -18,6 +15,7 @@ COINS = {
     "doge": "dogecoin"
 }
 
+# ======= تابع دریافت قیمت =======
 def get_price(symbols):
     result = []
     for sym in symbols:
@@ -40,10 +38,11 @@ def get_price(symbols):
             result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
     return "\n".join(result)
 
+# ======= فرمان‌ها =======
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "سلام 👋\nمن ربات قیمت کریپتو هستم.\n"
-        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان: /price btc eth sol"
+        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان:\n/price btc eth sol"
     )
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,21 +51,16 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text(get_price(context.args))
 
+# ======= ساخت Application =======
 application = ApplicationBuilder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("price", price))
 
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)  # ← این خط باعث اجرای فرمان‌ها می‌شود
-    return "ok"
-
-@app.route("/")
-def home():
-    return "Bot is running correctly ✅"
-
+# ======= اجرای Webhook =======
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=5000,  # Render متغیر PORT خودش می‌سازه، اگر لازم بود os.environ.get("PORT") بذار
+        url_path=TOKEN,
+        webhook_url=WEBHOOK_URL
+    )
