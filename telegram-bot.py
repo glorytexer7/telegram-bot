@@ -1,14 +1,13 @@
 import os
 import requests
 from flask import Flask, request
-from telegram import Update, Bot
-from telegram.ext import Dispatcher, CommandHandler, ContextTypes, Application
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise ValueError("توکن ربات در Environment Variable با نام BOT_TOKEN قرار نگرفته!")
+    raise ValueError("توکن BOT_TOKEN در Environment Variable قرار نگرفته!")
 
-bot = Bot(TOKEN)
 app = Flask(__name__)
 
 COINS = {
@@ -37,7 +36,7 @@ def get_price(symbols):
             prices.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
     return "\n".join(prices)
 
-# === فرمان‌ها ===
+# فرمان‌ها
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "سلام 👋\nمن ربات نمایش قیمت کریپتو هستم.\n"
@@ -50,16 +49,16 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text(get_price(context.args))
 
-# === Dispatcher مستقیم ===
-dispatcher = Dispatcher(bot, None, workers=0)
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("price", price))
+# ساخت Application
+app_bot = ApplicationBuilder().token(TOKEN).build()
+app_bot.add_handler(CommandHandler("start", start))
+app_bot.add_handler(CommandHandler("price", price))
 
-# === Webhook endpoint ===
+# Webhook endpoint
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)  # اجرا مستقیم
+    update = Update.de_json(request.get_json(force=True), app_bot.bot)
+    app_bot.update_queue.put(update)
     return "ok"
 
 @app.route("/")
