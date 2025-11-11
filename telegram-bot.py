@@ -149,7 +149,7 @@ def analyze_market_ai(symbol):
         f"- Price is showing {trend} with {momentum} momentum.\n"
         f"- Supports and resistances are calculated for key levels.\n"
         f"- Market sentiment from news considered.\n"
-        f"_Note: Not financial advice._"
+        f"_Note: Not financial advice._*"
     )
     return message
 
@@ -198,7 +198,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(msg, parse_mode="Markdown")
 
     elif data == "convert":
-        await query.message.reply_text("Use: `/convert 0.5 btc eth`", parse_mode="Markdown")
+        await query.message.reply_text("Use: `/convert 1 btc eth`", parse_mode="Markdown")
 
     elif data == "news":
         urls = ["https://cointelegraph.com/rss", "https://decrypt.co/feed"]
@@ -214,7 +214,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     news_items.append(f"- {title} ({link})")
             except:
                 continue
-        msg = "📰 *Top Crypto News:*\n" + "\n".join(news_items[:6])
+        msg = "📰 *Top Crypto News:*/n" + "\n".join(news_items[:6])
         await query.message.reply_text(msg, parse_mode="Markdown")
 
     elif data == "analysis":
@@ -225,7 +225,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if i+1 < len(keys):
                 row.append(InlineKeyboardButton(keys[i+1].upper(), callback_data=f"analyze_{keys[i+1]}"))
             keyboard.append(row)
-        await query.message.reply_text("Select a crypto to analyze:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.message.reply_text("Select a symbol to analyze:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif data.startswith("analyze_"):
         sym = data.replace("analyze_", "")
@@ -246,7 +246,7 @@ async def convert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ Error converting.")
     except:
-        await update.message.reply_text("Use: `/convert 0.5 btc eth`", parse_mode="Markdown")
+        await update.message.reply_text("Use: `/convert 1 btc eth`", parse_mode="Markdown")
 
 # ============================
 # 🚀 اجرای ربات
