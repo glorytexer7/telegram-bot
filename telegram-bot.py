@@ -140,12 +140,12 @@ def analyze_market_ai(symbol):
         f"💰 Price: `${price:,.6f}` ({change:+.2f}% 24h)\n"
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
-        f"⚙️ Key Levels: *\n"
+        f"⚙️ Key Levels:\n"
         f"- Support: {sup2:,}, {sup1:,}\n"
         f"- Resistance: {res1:,}, {res2:,}\n\n"
-        f"📰 Top News: *\n"
+        f"📰 Top News:\n"
         + "\n".join([f"- {h}" for h in headlines[:3]]) +
-        f"\n\n💡 Analysis Explanation: *\n"
+        f"\n\n💡 Analysis Explanation:\n"
         f"- Price is showing {trend} with {momentum} momentum.\n"
         f"- Supports and resistances are calculated for key levels.\n"
         f"- Market sentiment from news considered.\n"
@@ -262,5 +262,3 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
-
-
