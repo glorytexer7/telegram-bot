@@ -137,7 +137,7 @@ def analyze_market_ai(symbol):
 
     message = (
         f"🔍 *{SYMBOLS[sym]} Market Analysis*\n\n"
-        f"💰 Price: `${price:,.6f}` ({change:+.2f}%)\n"
+        f"💰 Price: `${price:,.6f}` ({change:+.2f}% 24h)\n"
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
         f"⚙️ Key Levels: *\n"
@@ -262,4 +262,5 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
 
