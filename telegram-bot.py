@@ -1,57 +1,67 @@
-from flask import Flask, request
-from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
+import os
 import requests
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
-# === تنظیمات اصلی ===
-TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
-bot = Bot(token=TOKEN)
-app = Flask(__name__)
+# === دریافت توکن از Environment Variable ===
+TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("توکن ربات در Environment Variable با نام BOT_TOKEN قرار نگرفته!")
 
-# === گرفتن قیمت از CoinGecko ===
-def get_price(symbol):
-    symbol = symbol.lower()
-    url = "https://api.coingecko.com/api/v3/simple/price"
-    params = {"ids": symbol, "vs_currencies": "usd"}
-    response = requests.get(url, params=params).json()
-    if symbol in response:
-        price = response[symbol]["usd"]
-        return f"💰 {symbol.capitalize()}: ${price:,}"
-    else:
-        return "❌ ارز مورد نظر پیدا نشد."
+# === ارزهای پشتیبانی شده ===
+COINS = {
+    "btc": "bitcoin",
+    "eth": "ethereum",
+    "sol": "solana",
+    "bnb": "binancecoin",
+    "doge": "dogecoin"
+}
+
+# === تابع گرفتن قیمت از CoinGecko ===
+def get_price(symbols):
+    prices = []
+    for sym in symbols:
+        sym = sym.lower()
+        if sym in COINS:
+            coin_id = COINS[sym]
+            url = f"https://api.coingecko.com/api/v3/simple/price"
+            params = {"ids": coin_id, "vs_currencies": "usd"}
+            response = requests.get(url, params=params).json()
+            price = response.get(coin_id, {}).get("usd")
+            if price is not None:
+                prices.append(f"💰 {sym.upper()}: ${price:,}")
+            else:
+                prices.append(f"❌ {sym.upper()}: داده موجود نیست")
+        else:
+            prices.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
+    return "\n".join(prices)
 
 # === فرمان /start ===
-def start(update, context):
+def start(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "سلام 👋\nمن ربات نمایش قیمت ارزهای دیجیتال هستم.\n"
-        "برای دیدن قیمت بنویس مثلاً:\n"
-        "`/price bitcoin` یا `/price eth`",
-        parse_mode="Markdown"
+        "سلام 👋\nمن ربات نمایش قیمت ارزهای دیجیتال هستم.\n\n"
+        "برای دیدن قیمت‌ها بنویس:\n"
+        "/price btc\nیا چند ارز همزمان:\n/price btc eth sol"
     )
 
 # === فرمان /price ===
-def price(update, context):
-    if len(context.args) == 0:
-        update.message.reply_text("🔹 لطفاً نماد ارز را وارد کن، مثل:\n/price bitcoin")
+def price(update: Update, context: CallbackContext):
+    if not context.args:
+        update.message.reply_text(
+            "لطفاً حداقل یک ارز وارد کن، مثال:\n/price btc"
+        )
         return
-    symbol = context.args[0]
-    update.message.reply_text(get_price(symbol))
+    message = get_price(context.args)
+    update.message.reply_text(message)
 
-# === تنظیم Dispatcher ===
-dispatcher = Dispatcher(bot, None, workers=0)
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("price", price))
+# === ساخت Updater و Dispatcher ===
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
 
-# === مسیر وب‌هوک ===
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(), bot)
-    dispatcher.process_update(update)
-    return "ok"
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("price", price))
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Bot is running ✅"
-
-if __name__ == "__main__":
-    app.run(port=8080)
+# === اجرای ربات ===
+print("ربات کریپتویی شما شروع شد 🚀")
+updater.start_polling()
+updater.idle()
