@@ -6,7 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise ValueError("توکن BOT_TOKEN در Environment Variable قرار نگرفته!")
+    raise ValueError("توکن ربات در Environment Variable با نام BOT_TOKEN قرار نگرفته!")
 
 app = Flask(__name__)
 
@@ -19,28 +19,29 @@ COINS = {
 }
 
 def get_price(symbols):
-    prices = []
+    result = []
     for sym in symbols:
         sym = sym.lower()
         if sym in COINS:
             coin_id = COINS[sym]
-            url = "https://api.coingecko.com/api/v3/simple/price"
-            params = {"ids": coin_id, "vs_currencies": "usd"}
-            response = requests.get(url, params=params).json()
-            price = response.get(coin_id, {}).get("usd")
-            if price is not None:
-                prices.append(f"💰 {sym.upper()}: ${price:,}")
-            else:
-                prices.append(f"❌ {sym.upper()}: داده موجود نیست")
+            try:
+                r = requests.get("https://api.coingecko.com/api/v3/simple/price", params={"ids": coin_id, "vs_currencies": "usd"})
+                price = r.json().get(coin_id, {}).get("usd")
+                if price:
+                    result.append(f"💰 {sym.upper()}: ${price:,}")
+                else:
+                    result.append(f"❌ {sym.upper()}: داده موجود نیست")
+            except:
+                result.append(f"❌ {sym.upper()}: خطا در دریافت دیتا")
         else:
-            prices.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
-    return "\n".join(prices)
+            result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
+    return "\n".join(result)
 
 # فرمان‌ها
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "سلام 👋\nمن ربات نمایش قیمت کریپتو هستم.\n"
-        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان: /price btc eth sol"
+        "سلام 👋\nمن ربات قیمت کریپتو هستم.\n"
+        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان:\n/price btc eth sol"
     )
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,15 +51,15 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(get_price(context.args))
 
 # ساخت Application
-app_bot = ApplicationBuilder().token(TOKEN).build()
-app_bot.add_handler(CommandHandler("start", start))
-app_bot.add_handler(CommandHandler("price", price))
+application = ApplicationBuilder().token(TOKEN).build()
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("price", price))
 
 # Webhook endpoint
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), app_bot.bot)
-    app_bot.update_queue.put(update)
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.update_queue.put(update)  # پردازش مستقیم پیام‌ها
     return "ok"
 
 @app.route("/")
