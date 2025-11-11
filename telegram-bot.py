@@ -1,74 +1,50 @@
-import time
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # ======= تنظیمات ربات =======
 TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
-WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"  # URL سرویس Render + توکن
+WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
 
-# ======= دیتای ارزها =======
-COINS = {
-    "btc": "bitcoin",
-    "eth": "ethereum",
-    "sol": "solana",
-    "bnb": "binancecoin",
-    "doge": "dogecoin"
+# ======= نگاشت نمادهای ساده به Binance =======
+BINANCE_SYMBOLS = {
+    "btc": "BTCUSDT",
+    "eth": "ETHUSDT",
+    "sol": "SOLUSDT",
+    "bnb": "BNBUSDT",
+    "doge": "DOGEUSDT"
 }
 
-# ======= کش داخلی برای جلوگیری از Rate Limit =======
-_price_cache = {"data": {}, "time": 0}
-CACHE_TTL = 30  # ثانیه، زمان نگهداری قیمت‌ها در کش
+# ======= کش ساده برای کاهش درخواست‌ها =======
+_price_cache = {}
+CACHE_TTL = 10  # ثانیه، می‌تونی بیشتر هم بذاری
 
-# ======= تابع دریافت قیمت با کش =======
 def get_price(symbols):
+    import time
     now = time.time()
-    # استفاده از کش اگر هنوز معتبره
-    if now - _price_cache["time"] < CACHE_TTL and _price_cache["data"]:
-        data = _price_cache["data"]
-    else:
-        # درخواست یکباره برای تمام ارزها
-        all_ids = ",".join(set(COINS.values()))
-        try:
-            r = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": all_ids, "vs_currencies": "usd"},
-                timeout=10
-            )
-        except requests.exceptions.RequestException as e:
-            if _price_cache["data"]:
-                data = _price_cache["data"]
-            else:
-                return "\n".join([f"❌ {sym.upper()}: خطای شبکه: {e}" for sym in symbols])
-        else:
-            if r.status_code == 200:
-                data = r.json()
-                _price_cache["data"] = data
-                _price_cache["time"] = now
-            elif r.status_code == 429:
-                if _price_cache["data"]:
-                    data = _price_cache["data"]
-                else:
-                    return "\n".join([f"❌ {sym.upper()}: CoinGecko Rate Limit (HTTP 429). لطفاً بعدا تلاش کن." for sym in symbols])
-            else:
-                if _price_cache["data"]:
-                    data = _price_cache["data"]
-                else:
-                    return "\n".join([f"❌ {sym.upper()}: خطا در دریافت دیتا (HTTP {r.status_code})" for sym in symbols])
-
-    # ساخت پیام برای ارزهای درخواست‌شده
     result = []
     for sym in symbols:
         key = sym.lower()
-        if key not in COINS:
-            result.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
+        if key not in BINANCE_SYMBOLS:
+            result.append(f"❌ {key.upper()}: ارز پشتیبانی نمیشه")
             continue
-        coin_id = COINS[key]
-        price = data.get(coin_id, {}).get("usd")
-        if price is not None:
-            result.append(f"💰 {key.upper()}: ${price:,}")
+
+        # بررسی کش
+        if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL:
+            price = _price_cache[key]["price"]
         else:
-            result.append(f"❌ {key.upper()}: داده موجود نیست")
+            url = f"https://api.binance.com/api/v3/ticker/price?symbol={BINANCE_SYMBOLS[key]}"
+            try:
+                r = requests.get(url, timeout=5)
+                r.raise_for_status()
+                data = r.json()
+                price = float(data["price"])
+                _price_cache[key] = {"price": price, "time": now}
+            except:
+                result.append(f"❌ {key.upper()}: خطا در دریافت دیتا")
+                continue
+
+        result.append(f"💰 {key.upper()}: ${price:,.2f}")
     return "\n".join(result)
 
 # ======= فرمان‌ها =======
@@ -93,7 +69,7 @@ application.add_handler(CommandHandler("price", price))
 if __name__ == "__main__":
     application.run_webhook(
         listen="0.0.0.0",
-        port=5000,  # Render خودش PORT درست می‌کنه؛ می‌تونی os.environ.get("PORT") هم بذاری
+        port=5000,
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
