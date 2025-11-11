@@ -137,19 +137,19 @@ def analyze_market_ai(symbol):
 
     message = (
         f"🔍 *{SYMBOLS[sym]} Market Analysis*\n\n"
-        f"💰 Price: `${price:,.6f}` ({change:+.2f}% 24h)\n"
+        f"💰 Price: `${price:,.6f}` ({change:+.2f}%)\n"
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
-        f"⚙️ Key Levels:\n"
+        f"⚙️ Key Levels: *\n"
         f"- Support: {sup2:,}, {sup1:,}\n"
         f"- Resistance: {res1:,}, {res2:,}\n\n"
-        f"📰 Top News:\n"
+        f"📰 Top News: *\n"
         + "\n".join([f"- {h}" for h in headlines[:3]]) +
-        f"\n\n💡 Analysis Explanation:\n"
+        f"\n\n💡 Analysis Explanation: *\n"
         f"- Price is showing {trend} with {momentum} momentum.\n"
         f"- Supports and resistances are calculated for key levels.\n"
-        f"- Market sentiment from news considered.\n"
-        f"_Note: Not financial advice._"
+        f"- Market sentiment from news considered.\n\n"
+        f"_Note: Not financial advice.*_"
     )
     return message
 
@@ -173,8 +173,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🤖 AI Market Analysis", callback_data="analysis")]
     ]
     text = (
-        "👋 *Welcome to EagleNova Crypto Bot!*\n\n"
-        "I can help you with:\n"
+        "👋 *Welcome To EagleNova Bot!*\n\n"
+        "💎 I can help you with:\n"
         "💰 Live cryptocurrency prices\n"
         "🔁 Converting crypto to other coins\n"
         "📰 Latest crypto news\n"
@@ -194,7 +194,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             d = get_price(k)
             if d:
                 lines.append(f"{SYMBOLS[k]}: ${d['price']:,.6f} ({d['change']:+.2f}%)")
-        msg = "💰 *Live Prices:*\n" + "\n".join(lines)
+        msg = "💰 *Live Prices:*\n\n" + "\n".join(lines)
         await query.message.reply_text(msg, parse_mode="Markdown")
 
     elif data == "convert":
@@ -262,5 +262,3 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
-
-
