@@ -1,3 +1,4 @@
+
 import time
 import requests
 from telegram import Update
@@ -69,9 +70,7 @@ def get_price(symbols):
 # ======= فرمان‌ها =======
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "سلام 👋\nمن ربات قیمت کریپتو هستم.\n"
-        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان:\n/price btc eth sol\n"
-        "اگر فقط /price بزنی، همه ارزها نمایش داده می‌شوند."
+     Hello 👋 / Welcome To EagleNova. / To see prices, send: /price btc. / If you just send /price, all currencies will be displayed.
     )
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
