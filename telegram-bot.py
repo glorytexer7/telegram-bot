@@ -17,14 +17,22 @@ SYMBOLS = {
     "eth": "ETH",
     "sol": "SOL",
     "bnb": "BNB",
-    "doge": "DOGE"
+    "doge": "DOGE",
+    "ada": "ADA",
+    "xrp": "XRP",
+    "matic": "MATIC",
+    "ltc": "LTC",
+    "trx": "TRX",
+    "ton": "TON",
+    "shib": "SHIB",
+    "pepe": "PEPE"
 }
 
 # ======= کش داخلی =======
 _price_cache = {}
 CACHE_TTL = 30  # ثانیه
 
-# ======= تابع دریافت قیمت =======
+# ======= تابع دریافت قیمت و درصد تغییر 24 ساعت =======
 def get_price(symbols):
     now = time.time()
     result = []
@@ -38,23 +46,23 @@ def get_price(symbols):
         # استفاده از کش
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL:
             price = _price_cache[key]["price"]
+            change = _price_cache[key]["change"]
         else:
-            url = f"https://min-api.cryptocompare.com/data/price"
-            params = {"fsym": SYMBOLS[key], "tsyms": "USD"}
+            url = f"https://min-api.cryptocompare.com/data/pricemultifull"
+            params = {"fsyms": SYMBOLS[key], "tsyms": "USD"}
             try:
                 r = requests.get(url, headers=HEADERS, params=params, timeout=5)
                 r.raise_for_status()
-                data = r.json()
-                price = data.get("USD")
-                if price is None:
-                    result.append(f"❌ {key.upper()}: داده موجود نیست")
-                    continue
-                _price_cache[key] = {"price": price, "time": now}
+                data = r.json()["RAW"][SYMBOLS[key]]["USD"]
+                price = data["PRICE"]
+                change = data["CHANGEPCT24HOUR"]
+                _price_cache[key] = {"price": price, "change": change, "time": now}
             except Exception as e:
                 result.append(f"❌ {key.upper()}: خطا در دریافت دیتا ({e})")
                 continue
 
-        result.append(f"💰 {key.upper()}: ${price:,.2f}")
+        arrow = "🔺" if change >= 0 else "🔻"
+        result.append(f"💰 {key.upper()}: ${price:,.2f} {arrow} {change:.2f}%")
 
     return "\n".join(result)
 
@@ -62,14 +70,14 @@ def get_price(symbols):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "سلام 👋\nمن ربات قیمت کریپتو هستم.\n"
-        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان:\n/price btc eth sol"
+        "برای دیدن قیمت‌ها بنویس:\n/price btc\nیا چند ارز همزمان:\n/price btc eth sol\n"
+        "اگر فقط /price بزنی، همه ارزها نمایش داده می‌شوند."
     )
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("لطفاً حداقل یک ارز وارد کن، مثال: /price btc")
-        return
-    await update.message.reply_text(get_price(context.args))
+    # اگر کاربر هیچ ارزی نفرستاد، همه ارزها رو نمایش بده
+    symbols_to_show = context.args if context.args else list(SYMBOLS.keys())
+    await update.message.reply_text(get_price(symbols_to_show))
 
 # ======= ساخت Application =======
 application = ApplicationBuilder().token(TOKEN).build()
