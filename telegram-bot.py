@@ -2,7 +2,7 @@ import time
 import requests
 import xml.etree.ElementTree as ET
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # ======= تنظیمات ربات =======
 TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
@@ -115,7 +115,7 @@ def analyze_market(symbols):
     return "\n\n".join(result)
 
 # ======= فرمان‌ها =======
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💰 Live Prices", callback_data="live_prices")],
         [InlineKeyboardButton("🧮 Convert Crypto", callback_data="convert_crypto")],
@@ -124,43 +124,47 @@ def start(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = "👋 Hello!\nWelcome to EagleNova.\nChoose an option from below:"
-    update.message.reply_text(text, reply_markup=reply_markup)
+    await update.message.reply_text(text, reply_markup=reply_markup)
 
-def button_handler(update: Update, context: CallbackContext):
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query.answer()
+    await query.answer()
     data = query.data
 
     if data == "live_prices":
-        query.message.reply_text(get_price(list(SYMBOLS.keys())))
+        await query.message.reply_text(get_price(list(SYMBOLS.keys())))
     elif data == "convert_crypto":
-        query.message.reply_text("Send command: /convert <amount> <from_symbol> <to_symbol>\nExample: /convert 1 btc eth")
+        await query.message.reply_text("Send command: /convert <amount> <from_symbol> <to_symbol>\nExample: /convert 1 btc eth")
     elif data == "market_analysis":
-        query.message.reply_text(analyze_market(list(SYMBOLS.keys())))
+        await query.message.reply_text(analyze_market(list(SYMBOLS.keys())))
     elif data == "crypto_news":
         rss_urls = [
             "https://cryptopanic.com/news.rss",
             "https://cointelegraph.com/rss",
             "https://decrypt.co/feed"
         ]
-        query.message.reply_text(get_news_rss(rss_urls))
+        await query.message.reply_text(get_news_rss(rss_urls))
 
-def convert(update: Update, context: CallbackContext):
+async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         amount = float(context.args[0])
         from_sym = context.args[1]
         to_sym = context.args[2]
-        update.message.reply_text(convert_crypto(amount, from_sym, to_sym))
+        await update.message.reply_text(convert_crypto(amount, from_sym, to_sym))
     except:
-        update.message.reply_text("❌ Usage: /convert <amount> <from_symbol> <to_symbol>\nExample: /convert 1 btc eth")
+        await update.message.reply_text("❌ Usage: /convert <amount> <from_symbol> <to_symbol>\nExample: /convert 1 btc eth")
 
-# ======= Updater =======
-updater = Updater(TOKEN, use_context=True)
-dp = updater.dispatcher
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CommandHandler("convert", convert))
-dp.add_handler(CallbackQueryHandler(button_handler))
+# ======= ساخت Application =======
+application = ApplicationBuilder().token(TOKEN).build()
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("convert", convert))
+application.add_handler(CallbackQueryHandler(button_handler))
 
-# ======= Polling =======
-updater.start_polling()
-updater.idle()
+# ======= اجرای Webhook =======
+if __name__ == "__main__":
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=5000,
+        url_path=TOKEN,
+        webhook_url=WEBHOOK_URL
+    )
