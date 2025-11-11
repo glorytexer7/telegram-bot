@@ -1,6 +1,3 @@
-python-telegram-bot[webhooks]==20.3
-requests
-feedparser
-openai
-numpy
-pandas
+python-telegram-bot==20.5
+requests==2.31.0
+feedparser==6.0.10
