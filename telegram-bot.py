@@ -4,7 +4,6 @@ import math
 import xml.etree.ElementTree as ET
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-import os
 
 # ============================
 # 🔧 تنظیمات اصلی
@@ -13,22 +12,9 @@ TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
 WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
 
 SYMBOLS = {
-    "btc": "BTC",
-    "eth": "ETH",
-    "bnb": "BNB",
-    "sol": "SOL",
-    "xrp": "XRP",
-    "doge": "DOGE",
-    "ada": "ADA",
-    "trx": "TRX",
-    "avax": "AVAX",
-    "dot": "DOT",
-    "matic": "MATIC",
-    "link": "LINK",
-    "ton": "TON",
-    "ltc": "LTC",
-    "uni": "UNI",
-    "etc": "ETC",
+    "btc": "BTC","eth": "ETH","bnb": "BNB","sol": "SOL","xrp": "XRP",
+    "doge": "DOGE","ada": "ADA","trx": "TRX","avax": "AVAX","dot": "DOT",
+    "matic": "MATIC","link": "LINK","ton": "TON","ltc": "LTC","uni": "UNI","etc": "ETC"
 }
 
 HEADERS = {"User-Agent": "EagleNovaBot/1.0"}
@@ -36,7 +22,7 @@ CACHE_TTL_PRICE = 60  # 1 min
 _price_cache = {}
 
 # ============================
-# 💰 تابع دریافت قیمت زنده از CryptoCompare
+# 💰 دریافت قیمت زنده از CryptoCompare
 # ============================
 def get_price(symbol):
     now = time.time()
@@ -57,23 +43,16 @@ def get_price(symbol):
     except:
         return None
 
-
 # ============================
-# 📈 تبدیل سطوح قیمتی
+# 📈 سطوح حمایت و مقاومت با دقت مناسب
 # ============================
 def nice_round_level(price, direction="down"):
-    if price >= 1000:
-        step = 100
-    elif price >= 100:
-        step = 10
-    elif price >= 10:
-        step = 1
-    elif price >= 1:
-        step = 0.1
-    elif price >= 0.01:
-        step = 0.001
-    else:
-        step = 0.000001
+    if price >= 1000: step = 100
+    elif price >= 100: step = 10
+    elif price >= 10: step = 1
+    elif price >= 1: step = 0.1
+    elif price >= 0.01: step = 0.001
+    else: step = 0.000001
 
     if direction == "down":
         lvl = (price // step) * step
@@ -83,25 +62,21 @@ def nice_round_level(price, direction="down"):
     decimals = max(0, -int(round(math.log10(step)))) if step < 1 else 0
     return round(lvl, decimals)
 
-
 # ============================
-# 🧠 تابع تحلیل هوشمند بازار (AI-like)
+# 🧠 تحلیل بازار هوشمند (AI-like)
 # ============================
-POS_WORDS = ["approve", "bull", "rally", "surge", "gain", "up", "record", "adoption"]
-NEG_WORDS = ["sell", "bear", "drop", "decline", "dump", "down", "crash", "halt"]
+POS_WORDS = ["approve","bull","rally","surge","gain","up","record","adoption"]
+NEG_WORDS = ["sell","bear","drop","decline","dump","down","crash","halt"]
 
 def score_headlines_sentiment(headlines):
     score = 0
     for h in headlines:
         text = h.lower()
-        for w in POS_WORDS:
-            if w in text:
-                score += 1
-        for w in NEG_WORDS:
-            if w in text:
-                score -= 1
+        for w in POS_WORDS: 
+            if w in text: score += 1
+        for w in NEG_WORDS: 
+            if w in text: score -= 1
     return score
-
 
 def analyze_market_ai(symbol):
     sym = symbol.lower()
@@ -114,28 +89,28 @@ def analyze_market_ai(symbol):
 
     price = data["price"]
     change = data["change"]
-
     abs_change = abs(change)
-    if abs_change >= 5:
-        momentum = "Strong"
-    elif abs_change >= 1.5:
-        momentum = "Moderate"
-    else:
-        momentum = "Mild"
 
+    # Momentum
+    if abs_change >= 5: momentum = "Strong"
+    elif abs_change >= 1.5: momentum = "Moderate"
+    else: momentum = "Mild"
+
+    # Trend
     trend = "uptrend" if change > 0 else ("downtrend" if change < 0 else "sideways")
 
+    # Support / Resistance
     sup1 = nice_round_level(price * 0.99, "down")
     sup2 = nice_round_level(price * 0.985, "down")
     res1 = nice_round_level(price * 1.01, "up")
     res2 = nice_round_level(price * 1.02, "up")
 
+    # News
     rss_urls = [
         "https://cryptopanic.com/news.rss",
         "https://cointelegraph.com/rss",
         "https://decrypt.co/feed",
     ]
-
     headlines = []
     for url in rss_urls:
         try:
@@ -149,54 +124,43 @@ def analyze_market_ai(symbol):
                     headlines.append(f"{title} ({link})")
         except:
             continue
-
     if not headlines:
         headlines = ["No direct news found, using general market data."]
 
     sentiment_score = score_headlines_sentiment(headlines)
-    total_signal = (1 if change > 0 else -1 if change < 0 else 0) * 0.7 + (1 if sentiment_score > 0 else -1 if sentiment_score < 0 else 0) * 0.3
+    total_signal = (1 if change > 0 else -1 if change < 0 else 0) * 0.7 + \
+                   (1 if sentiment_score > 0 else -1 if sentiment_score < 0 else 0) * 0.3
 
-    if total_signal > 0.4:
-        overall = "Bullish"
-    elif total_signal < -0.4:
-        overall = "Bearish"
-    else:
-        overall = "Neutral / Mixed"
-
-    risk_pct = 0.01 if momentum == "Strong" else (0.015 if momentum == "Moderate" else 0.03)
-    stop_loss = round(price * (1 - risk_pct), 2)
-    target1 = round(res1, 2)
-    target2 = round(res2, 2)
+    if total_signal > 0.4: overall = "Bullish"
+    elif total_signal < -0.4: overall = "Bearish"
+    else: overall = "Neutral / Mixed"
 
     message = (
         f"🔍 *{SYMBOLS[sym]} Market Analysis*\n\n"
-        f"💰 Price: `${price:,.2f}` ({change:+.2f}% 24h)\n"
+        f"💰 Price: `${price:,.6f}` ({change:+.2f}% 24h)\n"
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
         f"⚙️ Key Levels:\n"
         f"- Support: {sup2:,}, {sup1:,}\n"
         f"- Resistance: {res1:,}, {res2:,}\n\n"
-        f"📰 News Highlights:\n"
+        f"📰 Top News:\n"
         + "\n".join([f"- {h}" for h in headlines[:3]]) +
-        f"\n\n🎯 Trade Idea:\n"
-        f"- Entry near ${sup1:,}, Stop ${stop_loss:,}\n"
-        f"- Targets ${target1:,} / ${target2:,}\n"
-        f"- Risk: ≤ 2% per trade.\n\n"
-        f"Confidence: Medium\n"
+        f"\n\n💡 Analysis Explanation:\n"
+        f"- Price is showing {trend} with {momentum} momentum.\n"
+        f"- Supports and resistances are calculated for key levels.\n"
+        f"- Market sentiment from news considered.\n"
         f"_Note: Not financial advice._"
     )
     return message
 
-
 # ============================
-# 🔁 تبدیل ارز به USDT
+# 🔁 تبدیل ارز به ارز دیگر
 # ============================
-def convert_to_usdt(symbol, amount):
-    data = get_price(symbol)
-    if not data:
-        return None
-    return amount * data["price"]
-
+def convert_currency(amount, from_sym, to_sym):
+    from_data = get_price(from_sym)
+    to_data = get_price(to_sym)
+    if not from_data or not to_data: return None
+    return amount * from_data["price"] / to_data["price"]
 
 # ============================
 # 🤖 دستورات و دکمه‌ها
@@ -204,21 +168,20 @@ def convert_to_usdt(symbol, amount):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💰 Live Prices", callback_data="prices")],
-        [InlineKeyboardButton("💱 Convert to USDT", callback_data="convert")],
+        [InlineKeyboardButton("🔁 Convert Crypto", callback_data="convert")],
         [InlineKeyboardButton("📰 Crypto News", callback_data="news")],
-        [InlineKeyboardButton("📊 Market Analysis (AI)", callback_data="analysis")],
+        [InlineKeyboardButton("🤖 AI Market Analysis", callback_data="analysis")]
     ]
     text = (
         "👋 *Welcome to EagleNova Crypto Bot!*\n\n"
         "I can help you with:\n"
         "💰 Live cryptocurrency prices\n"
-        "💱 Converting crypto to USDT\n"
+        "🔁 Converting crypto to other coins\n"
         "📰 Latest crypto news\n"
-        "📊 Smart market analysis with AI-like insights\n\n"
+        "🤖 Smart market analysis with AI insights\n\n"
         "Choose an option below:"
     )
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
-
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -227,15 +190,15 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "prices":
         lines = []
-        for k in ["btc", "eth", "bnb", "sol", "xrp"]:
+        for k in SYMBOLS.keys():
             d = get_price(k)
             if d:
-                lines.append(f"{SYMBOLS[k]}: ${d['price']:,.2f} ({d['change']:+.2f}%)")
+                lines.append(f"{SYMBOLS[k]}: ${d['price']:,.6f} ({d['change']:+.2f}%)")
         msg = "💰 *Live Prices:*\n" + "\n".join(lines)
         await query.message.reply_text(msg, parse_mode="Markdown")
 
     elif data == "convert":
-        await query.message.reply_text("Enter like: `/convert btc 0.5`")
+        await query.message.reply_text("Use: `/convert 0.5 btc eth`", parse_mode="Markdown")
 
     elif data == "news":
         urls = ["https://cointelegraph.com/rss", "https://decrypt.co/feed"]
@@ -258,9 +221,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keys = list(SYMBOLS.keys())
         keyboard = []
         for i in range(0, len(keys), 2):
-            row = []
-            row.append(InlineKeyboardButton(keys[i].upper(), callback_data=f"analyze_{keys[i]}"))
-            if i + 1 < len(keys):
+            row = [InlineKeyboardButton(keys[i].upper(), callback_data=f"analyze_{keys[i]}")]
+            if i+1 < len(keys):
                 row.append(InlineKeyboardButton(keys[i+1].upper(), callback_data=f"analyze_{keys[i+1]}"))
             keyboard.append(row)
         await query.message.reply_text("Select a crypto to analyze:", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -270,34 +232,33 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = analyze_market_ai(sym)
         await query.message.reply_text(msg, parse_mode="Markdown")
 
-
+# ============================
+# تبدیل ارز بین هر دو ارز
+# ============================
 async def convert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        sym = context.args[0].lower()
-        amount = float(context.args[1])
-        result = convert_to_usdt(sym, amount)
+        amount = float(context.args[0])
+        from_sym = context.args[1].lower()
+        to_sym = context.args[2].lower()
+        result = convert_currency(amount, from_sym, to_sym)
         if result:
-            await update.message.reply_text(f"{amount} {sym.upper()} ≈ ${result:,.2f} USDT")
+            await update.message.reply_text(f"{amount} {from_sym.upper()} ≈ {result:,.6f} {to_sym.upper()}")
         else:
             await update.message.reply_text("❌ Error converting.")
     except:
-        await update.message.reply_text("Use format: `/convert btc 0.5`", parse_mode="Markdown")
-
+        await update.message.reply_text("Use: `/convert 0.5 btc eth`", parse_mode="Markdown")
 
 # ============================
 # 🚀 اجرای ربات
 # ============================
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("convert", convert_command))
     app.add_handler(CallbackQueryHandler(button))
-
     app.run_webhook(
         listen="0.0.0.0",
         port=5000,
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
-
