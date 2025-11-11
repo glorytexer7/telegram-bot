@@ -69,12 +69,13 @@ def get_price(symbols):
 
 # ======= فرمان‌ها =======
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-     "Hello 👋/n"
-     "Welcome To EagleNova./n"
-     "To see prices, send /price btc./n"
-     "If you just send /price, all currencies will be displayed."
+    text = (
+        "Hello 👋\n"
+        "Welcome To EagleNova.\n"
+        "To see prices, send /price btc.\n"
+        "If you just send /price, all currencies will be displayed."
     )
+    await update.message.reply_text(text)
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # اگر کاربر هیچ ارزی نفرستاد، همه ارزها رو نمایش بده
@@ -94,6 +95,7 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
 
 
 
