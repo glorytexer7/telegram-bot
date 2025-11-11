@@ -23,11 +23,12 @@ def get_price(symbols):
         if sym in COINS:
             coin_id = COINS[sym]
             try:
-                r = requests.get(
-                    "https://api.coingecko.com/api/v3/simple/price",
-                    params={"ids": coin_id, "vs_currencies": "usd"}
-                )
-                price = r.json().get(coin_id, {}).get("usd")
+    r = requests.get(
+        "https://api.coingecko.com/api/v3/simple/price",
+        params={"ids": coin_id, "vs_currencies": "usd"}
+    )
+    print(r.status_code, r.text)  # ← اضافه کن
+    price = r.json().get(coin_id, {}).get("usd")
                 if price:
                     result.append(f"💰 {sym.upper()}: ${price:,}")
                 else:
@@ -64,3 +65,4 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
