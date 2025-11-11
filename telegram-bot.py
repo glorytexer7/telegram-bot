@@ -59,7 +59,8 @@ application.add_handler(CommandHandler("price", price))
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    application.update_queue.put(update)  # پردازش مستقیم پیام‌ها
+    # پردازش مستقیم
+    application.process_update(update)
     return "ok"
 
 @app.route("/")
@@ -69,3 +70,4 @@ def home():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
