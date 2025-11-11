@@ -1,6 +1,6 @@
 import time
 import requests
-import feedparser
+import xml.etree.ElementTree as ET
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 
@@ -43,18 +43,17 @@ def get_price(symbols):
             result.append(f"❌ {key.upper()}: Not supported")
             continue
 
-        # کش
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL_PRICE:
             price = _price_cache[key]["price"]
         else:
-            url = f"https://min-api.cryptocompare.com/data/pricemultifull"
+            url = "https://min-api.cryptocompare.com/data/pricemultifull"
             params = {"fsyms": SYMBOLS[key], "tsyms": "USD"}
             try:
                 r = requests.get(url, headers=HEADERS, params=params, timeout=5)
                 r.raise_for_status()
                 data = r.json()["RAW"][SYMBOLS[key]]["USD"]
                 price = data["PRICE"]
-                _price_cache[key] = {"price": price, "time": now}
+                _price_cache[key] = {"price": price, "time": now, "change": data.get("CHANGEPCT24HOUR", 0)}
             except Exception as e:
                 result.append(f"❌ {key.upper()}: Error fetching data ({e})")
                 continue
@@ -77,22 +76,21 @@ def convert_crypto(amount, from_sym, to_sym):
     except:
         return "❌ Error converting currencies."
 
-def get_news():
+def get_news_rss(urls):
     now = time.time()
     if "time" in _news_cache and now - _news_cache["time"] < CACHE_TTL_NEWS:
         return _news_cache["data"]
 
-    feed_urls = [
-        "https://cryptopanic.com/news.rss",
-        "https://cointelegraph.com/rss",
-        "https://decrypt.co/feed"
-    ]
     news_items = []
-    for url in feed_urls:
+    for url in urls:
         try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries[:3]:
-                news_items.append(f"📰 {entry.title}\n🔗 {entry.link}")
+            r = requests.get(url, timeout=5)
+            r.raise_for_status()
+            root = ET.fromstring(r.content)
+            for item in root.findall('.//item')[:3]:
+                title = item.find('title').text
+                link = item.find('link').text
+                news_items.append(f"📰 {title}\n🔗 {link}")
         except:
             continue
 
@@ -109,25 +107,23 @@ def analyze_market(symbols):
             result.append(f"❌ {key.upper()}: Not supported")
             continue
 
-        # کش قیمت
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL_PRICE:
             price = _price_cache[key]["price"]
+            change = _price_cache[key].get("change", 0)
         else:
-            url = f"https://min-api.cryptocompare.com/data/pricemultifull"
+            url = "https://min-api.cryptocompare.com/data/pricemultifull"
             params = {"fsyms": SYMBOLS[key], "tsyms": "USD"}
             try:
                 r = requests.get(url, headers=HEADERS, params=params, timeout=5)
                 r.raise_for_status()
                 data = r.json()["RAW"][SYMBOLS[key]]["USD"]
                 price = data["PRICE"]
-                change = data["CHANGEPCT24HOUR"]
+                change = data.get("CHANGEPCT24HOUR", 0)
                 _price_cache[key] = {"price": price, "change": change, "time": now}
             except:
                 result.append(f"❌ {key.upper()}: Error fetching data")
                 continue
 
-        # تحلیل ساده تکنیکال و فاندامنتال
-        change = _price_cache[key].get("change", 0)
         sentiment = "Bullish 📈" if change >= 0 else "Bearish 📉"
         result.append(f"💡 {key.upper()} Market Analysis:\nPrice: ${price:,.2f}\n24h Change: {change:.2f}%\nSentiment: {sentiment}")
 
@@ -157,7 +153,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "market_analysis":
         await query.message.reply_text(analyze_market(list(SYMBOLS.keys())))
     elif data == "crypto_news":
-        await query.message.reply_text(get_news())
+        rss_urls = [
+            "https://cryptopanic.com/news.rss",
+            "https://cointelegraph.com/rss",
+            "https://decrypt.co/feed"
+        ]
+        await query.message.reply_text(get_news_rss(rss_urls))
 
 async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
