@@ -1,3 +1,4 @@
+import time
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -6,45 +7,55 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 TOKEN = "8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
 WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN-mU4I72X4Vyx1Iv03f-PVqk"
 
-# ======= نگاشت نمادهای ساده به Binance =======
-BINANCE_SYMBOLS = {
-    "btc": "BTCUSDT",
-    "eth": "ETHUSDT",
-    "sol": "SOLUSDT",
-    "bnb": "BNBUSDT",
-    "doge": "DOGEUSDT"
+# ======= API CryptoCompare =======
+API_KEY = "e4c4036f48ea8bca9ff5d844dfb7f8fc0a7610d58c8312be1ddca692afaee82a"
+HEADERS = {"authorization": f"Apikey {API_KEY}"}
+
+# ======= نگاشت نمادها =======
+SYMBOLS = {
+    "btc": "BTC",
+    "eth": "ETH",
+    "sol": "SOL",
+    "bnb": "BNB",
+    "doge": "DOGE"
 }
 
-# ======= کش ساده برای کاهش درخواست‌ها =======
+# ======= کش داخلی =======
 _price_cache = {}
-CACHE_TTL = 10  # ثانیه، می‌تونی بیشتر هم بذاری
+CACHE_TTL = 30  # ثانیه
 
+# ======= تابع دریافت قیمت =======
 def get_price(symbols):
-    import time
     now = time.time()
     result = []
+
     for sym in symbols:
         key = sym.lower()
-        if key not in BINANCE_SYMBOLS:
+        if key not in SYMBOLS:
             result.append(f"❌ {key.upper()}: ارز پشتیبانی نمیشه")
             continue
 
-        # بررسی کش
+        # استفاده از کش
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL:
             price = _price_cache[key]["price"]
         else:
-            url = f"https://api.binance.com/api/v3/ticker/price?symbol={BINANCE_SYMBOLS[key]}"
+            url = f"https://min-api.cryptocompare.com/data/price"
+            params = {"fsym": SYMBOLS[key], "tsyms": "USD"}
             try:
-                r = requests.get(url, timeout=5)
+                r = requests.get(url, headers=HEADERS, params=params, timeout=5)
                 r.raise_for_status()
                 data = r.json()
-                price = float(data["price"])
+                price = data.get("USD")
+                if price is None:
+                    result.append(f"❌ {key.upper()}: داده موجود نیست")
+                    continue
                 _price_cache[key] = {"price": price, "time": now}
-            except:
-                result.append(f"❌ {key.upper()}: خطا در دریافت دیتا")
+            except Exception as e:
+                result.append(f"❌ {key.upper()}: خطا در دریافت دیتا ({e})")
                 continue
 
         result.append(f"💰 {key.upper()}: ${price:,.2f}")
+
     return "\n".join(result)
 
 # ======= فرمان‌ها =======
