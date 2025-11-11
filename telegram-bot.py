@@ -47,7 +47,6 @@ def get_price(symbols):
         # استفاده از کش
         if key in _price_cache and now - _price_cache[key]["time"] < CACHE_TTL:
             price = _price_cache[key]["price"]
-            change = _price_cache[key]["change"]
         else:
             url = f"https://min-api.cryptocompare.com/data/pricemultifull"
             params = {"fsyms": SYMBOLS[key], "tsyms": "USD"}
@@ -56,14 +55,13 @@ def get_price(symbols):
                 r.raise_for_status()
                 data = r.json()["RAW"][SYMBOLS[key]]["USD"]
                 price = data["PRICE"]
-                change = data["CHANGEPCT24HOUR"]
-                _price_cache[key] = {"price": price, "change": change, "time": now}
+                _price_cache[key] = {"price": price, "time": now}
             except Exception as e:
                 result.append(f"❌ {key.upper()}: خطا در دریافت دیتا ({e})")
                 continue
 
-        arrow = "🔺" if change >= 0 else "🔻"
-        result.append(f"💰 {key.upper()}: ${price:,.2f} {arrow} {change:.2f}%")
+        # فقط نمایش قیمت بدون درصد تغییر و فلش
+        result.append(f"💰 {key.upper()}: ${price:,.2f}")
 
     return "\n".join(result)
 
@@ -71,9 +69,10 @@ def get_price(symbols):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "Hello 👋\n"
-        "Welcome To EagleNova.\n"
+        "Welcome To EagleNova.\n\n"
         "To see prices, send /price btc.\n"
-        "If you just send /price, all currencies will be displayed."
+        "If you just send /price, all currencies will be displayed.\n\n"
+        "Visit our channel: https://t.me/EagleNova"
     )
     await update.message.reply_text(text)
 
@@ -95,6 +94,7 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
 
 
 
