@@ -14,7 +14,7 @@ WEBHOOK_URL = f"https://telegram-bot-2-ve4l.onrender.com/8272494379:AAGs_PKW1gIN
 SYMBOLS = {
     "btc": "BTC","eth": "ETH","bnb": "BNB","sol": "SOL","xrp": "XRP",
     "doge": "DOGE","ada": "ADA","trx": "TRX","avax": "AVAX","dot": "DOT",
-    "matic": "MATIC","link": "LINK","ton": "TON","ltc": "LTC","uni": "UNI","etc": "ETC"
+    "matic": "MATIC","link": "LINK","ton": "TON","ltc": "LTC","uni": "UNI","etc": "ETC","usdt": "USDT"
 }
 
 HEADERS = {"User-Agent": "EagleNovaBot/1.0"}
@@ -137,7 +137,7 @@ def analyze_market_ai(symbol):
 
     message = (
         f"🔍 *{SYMBOLS[sym]} Market Analysis*\n\n"
-        f"💰 Price: `${price:,.6f}` ({change:+.2f}%)\n"
+        f"💰 Price: ${price:,.6f} ({change:+.2f}%)\n"
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
         f"⚙️ Key Levels: *\n"
@@ -149,7 +149,7 @@ def analyze_market_ai(symbol):
         f"- Price is showing {trend} with {momentum} momentum.\n"
         f"- Supports and resistances are calculated for key levels.\n"
         f"- Market sentiment from news considered.\n\n"
-        f"_Note: Not financial advice.*_"
+        f"_Note: Not financial advice._"
     )
     return message
 
