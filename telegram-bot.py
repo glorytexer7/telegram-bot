@@ -1,9 +1,10 @@
 import os
 import requests
 from flask import Flask, request
-from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, CallbackContext
+from telegram import Update, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
+# === دریافت توکن از Environment Variable ===
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("توکن ربات در Environment Variable با نام BOT_TOKEN قرار نگرفته!")
@@ -11,7 +12,7 @@ if not TOKEN:
 bot = Bot(TOKEN)
 app = Flask(__name__)
 
-# ارزهای پشتیبانی شده
+# === ارزهای پشتیبانی شده ===
 COINS = {
     "btc": "bitcoin",
     "eth": "ethereum",
@@ -20,7 +21,7 @@ COINS = {
     "doge": "dogecoin"
 }
 
-# گرفتن قیمت
+# === گرفتن قیمت ===
 def get_price(symbols):
     prices = []
     for sym in symbols:
@@ -39,36 +40,39 @@ def get_price(symbols):
             prices.append(f"❌ {sym.upper()}: ارز پشتیبانی نمیشه")
     return "\n".join(prices)
 
-# فرمان‌ها
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text(
-        "سلام 👋\nمن ربات نمایش قیمت کریپتو هستم.\n"
+# === فرمان /start ===
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "سلام 👋\nمن ربات نمایش قیمت کریپتو هستم.\n\n"
+        "برای دیدن قیمت‌ها بنویس:\n"
         "/price btc\nیا چند ارز همزمان:\n/price btc eth sol"
     )
 
-def price(update: Update, context: CallbackContext):
+# === فرمان /price ===
+async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        update.message.reply_text("لطفاً حداقل یک ارز وارد کن، مثال: /price btc")
+        await update.message.reply_text("لطفاً حداقل یک ارز وارد کن، مثال: /price btc")
         return
-    update.message.reply_text(get_price(context.args))
+    await update.message.reply_text(get_price(context.args))
 
-# Dispatcher
-dispatcher = Dispatcher(bot, None, workers=0)
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("price", price))
+# === ساخت اپلیکیشن ===
+app_bot = ApplicationBuilder().token(TOKEN).build()
+app_bot.add_handler(CommandHandler("start", start))
+app_bot.add_handler(CommandHandler("price", price))
 
-# Webhook endpoint
+# === Webhook endpoint ===
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
+    app_bot.update_queue.put(update)
     return "ok"
 
-# Home
+# === Home page ===
 @app.route("/")
 def home():
     return "Bot is running ✅"
 
+# === اجرا ===
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
