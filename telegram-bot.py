@@ -168,7 +168,7 @@ def convert_currency(amount, from_sym, to_sym):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💰 Live Prices", callback_data="prices")],
-        [InlineKeyboardButton("🔁 Convert Crypto", callback_data="convert")],
+        [InlineKeyboardButton("🔁 Convert Coin", callback_data="convert")],
         [InlineKeyboardButton("📰 Crypto News", callback_data="news")],
         [InlineKeyboardButton("🤖 AI Market Analysis", callback_data="analysis")]
     ]
@@ -176,7 +176,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "👋 *Welcome To EagleNova!*\n\n"
         "💎 I Can Help You With:\n"
         "💰 Live Cryptocurrency Prices\n"
-        "🔁 Converting Crypto To Other Coins\n"
+        "🔁 Converting Coins\n"
         "📰 Latest Crypto News\n"
         "🤖 Smart Market Analysis With AI Insights\n\n"
         "*Join Us  - 『 @EagleNova 』*\n\n"
@@ -263,6 +263,7 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
 
 
 
