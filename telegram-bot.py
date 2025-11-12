@@ -148,7 +148,7 @@ def analyze_market_ai(symbol):
         f"\n\n💡 Analysis Explanation:\n"
         f"- Price is showing {trend} with {momentum} momentum.\n"
         f"- Supports and resistances are calculated for key levels.\n"
-        f"- Market sentiment from news considered.\n"
+        f"- Market sentiment from news considered.\n\n"
         f"_Note: Not financial advice._"
     )
     return message
@@ -262,3 +262,4 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
