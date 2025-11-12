@@ -141,8 +141,8 @@ def analyze_market_ai(symbol):
         f"📊 Trend: {trend} ({momentum} momentum)\n"
         f"📈 Overall: *{overall}*\n\n"
         f"*⚙️ Key Levels:*\n"
-        f"- Support: {sup2:,}, {sup1:,}\n"
-        f"- Resistance: {res1:,}, {res2:,}\n\n"
+        f"- Support: {sup2:,} & {sup1:,}\n"
+        f"- Resistance: {res1:,} & {res2:,}\n\n"
         f"*📰 Top News:*\n"
         + "\n".join([f"- {h}" for h in headlines[:3]]) +
         f"\n\n*💡 Analysis Explanation:*\n"
@@ -173,13 +173,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🤖 AI Market Analysis", callback_data="analysis")]
     ]
     text = (
-        "👋 *Welcome To EagleNova Bot!*\n\n"
-        "💎 I can help you with:\n"
-        "💰 Live cryptocurrency prices\n"
-        "🔁 Converting crypto to other coins\n"
-        "📰 Latest crypto news\n"
-        "🤖 Smart market analysis with AI insights\n\n"
-        "Choose an option below:"
+        "👋 *Welcome To EagleNova!*\n\n"
+        "💎 I Can Help You With:\n"
+        "💰 Live Cryptocurrency Prices\n"
+        "🔁 Converting Crypto To Other Coins\n"
+        "📰 Latest Crypto News\n"
+        "🤖 Smart Market Analysis With AI Insights\n\n"
+        "*Join Us  - 『 @EagleNova 』*\n\n"
+        "Choose An Option Below:"
     )
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -262,6 +263,7 @@ if __name__ == "__main__":
         url_path=TOKEN,
         webhook_url=WEBHOOK_URL
     )
+
 
 
 
